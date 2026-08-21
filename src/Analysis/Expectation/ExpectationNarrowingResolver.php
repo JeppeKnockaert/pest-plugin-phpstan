@@ -13,6 +13,7 @@ use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
+use PHPStan\Type\MixedType;
 use PHPStan\Type\ObjectType;
 use PHPStan\Type\Type;
 
@@ -136,10 +137,16 @@ final class ExpectationNarrowingResolver
         return $narrowings;
     }
 
-    /** @return bool True when and() may unwrap the argument to an inner value we cannot track */
+    /** @return bool True when and() may unwrap the argument to an inner value we cannot track; plain mixed is assumed not to hold an Expectation */
     private function mayBeExpectation(Expr $expr, Scope $scope): bool
     {
-        return ! new ObjectType(Expectation::class)->isSuperTypeOf($scope->getType($expr))->no();
+        $type = $scope->getType($expr);
+
+        if ($type instanceof MixedType) {
+            return false;
+        }
+
+        return ! new ObjectType(Expectation::class)->isSuperTypeOf($type)->no();
     }
 
     private function resolveSubject(Expr $root, Scope $scope): ?Expr

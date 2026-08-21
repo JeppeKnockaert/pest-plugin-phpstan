@@ -297,3 +297,33 @@ function testFirstClassCallableChainDoesNotNarrow(): void
     assertType('string|null', $value);
     assertType('int|string', $other);
 }
+
+function testAndRebindsMixedValues(): void
+{
+    /** @var int|string $first */
+    $first = random_int(0, 1) === 1 ? 1 : 'a';
+    /** @var mixed $second A plain mixed value is assumed not to be an Expectation */
+    $second = json_decode('"a"');
+    expect($first)->toBeInt()->and($second)->toBeString();
+    assertType('int', $first);
+    assertType('string', $second);
+}
+
+function testAndRebindsMixedValuesThroughNegation(): void
+{
+    /** @var mixed $value */
+    $value = json_decode('"a"');
+    expect(1)->toBeInt()->and($value)->not->toBeNull();
+    assertType('mixed~null', $value);
+}
+
+function testAndWithPossibleExpectationArgumentStopsNarrowing(): void
+{
+    /** @var int|string $first */
+    $first = random_int(0, 1) === 1 ? 1 : 'a';
+    /** @var \Pest\Expectation<int>|string $second A declared Expectation possibility keeps the fail-safe */
+    $second = random_int(0, 1) === 1 ? expect(1) : 'a';
+    expect($first)->toBeInt()->and($second)->toBeString();
+    assertType('int', $first);
+    assertType('Pest\Expectation<int>|string', $second);
+}
